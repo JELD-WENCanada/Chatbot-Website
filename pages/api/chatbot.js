@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  const GOOGLE_SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxS-0kLirrcAybKpmKrXmnznVOGAwVWDHVWQIHYqso-/exec";
+  const GOOGLE_SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwYE0h0I3aK3xzCNXEv06M1z9WjpYTUXqnWNWPjsk9dwqRO3ooXC00KdzrtNf-jwzQbyw/exec";
 
   try {
     const response = await fetch(GOOGLE_SHEETS_WEB_APP_URL);
