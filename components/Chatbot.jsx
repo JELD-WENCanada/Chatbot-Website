@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 
 export default function Chatbot() {
@@ -8,10 +7,12 @@ export default function Chatbot() {
   const [intents, setIntents] = useState(null);
   const messagesEndRef = useRef(null);
 
+  // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Fetch intents from backend API once
   useEffect(() => {
     fetch("/api/chatbot")
       .then((res) => {
@@ -25,7 +26,7 @@ export default function Chatbot() {
   }, []);
 
   const toggleChat = () => {
-    setIsOpen(!isOpen);
+    setIsOpen((prev) => !prev);
   };
 
   const refreshChat = () => {
@@ -33,51 +34,49 @@ export default function Chatbot() {
     setInput("");
   };
 
-  function findMatchingResponse(input) {
+  function findMatchingResponse(inputText) {
     if (!intents) return "Thanks for your message! We'll get back to you shortly.";
 
-    input = input.toLowerCase();
+    inputText = inputText.toLowerCase();
     for (const intent of intents) {
       for (const pattern of intent.patterns) {
-        if (input.includes(pattern)) {
+        if (inputText.includes(pattern)) {
           const randomIndex = Math.floor(Math.random() * intent.responses.length);
           return intent.responses[randomIndex];
         }
       }
     }
-
     return "Thanks for your message! We'll get back to you shortly.";
   }
 
   function sendMessage() {
     if (!input.trim()) return;
-
     const userMessage = { sender: "user", text: input };
     setMessages((prev) => [...prev, userMessage]);
 
     const botResponse = findMatchingResponse(input);
     setInput("");
-
     setTimeout(() => {
       setMessages((prev) => [...prev, { sender: "bot", text: botResponse }]);
     }, 500);
   }
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      sendMessage();
-    }
+    if (e.key === "Enter") sendMessage();
   };
 
   return (
     <>
+      {/* Trigger button */}
       {!isOpen && (
-        <div id="chatbot-trigger" className="chatbot-trigger" onClick={toggleChat}>
+        <div id="chatbot-trigger" onClick={toggleChat}>
           <img src="/images/jw-logo.png" alt="JELD-WEN Logo" />
         </div>
       )}
 
-      <div id="chatbot-container" className={`chatbot-container ${isOpen ? "show" : ""}`}>
+      {/* Chat container */}
+      <div id="chatbot-container" className={isOpen ? "show" : ""}>
+        {/* Header */}
         <div id="chatbot-header">
           <div className="header-left">
             <div id="chatbot-logo">
@@ -91,6 +90,7 @@ export default function Chatbot() {
           </div>
         </div>
 
+        {/* Messages */}
         <div className="chat-messages" id="chat-messages">
           {messages.map((msg, i) => (
             <div key={i} className={`message ${msg.sender}`}>
@@ -100,6 +100,7 @@ export default function Chatbot() {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Input area */}
         <div className="chat-input">
           <input
             type="text"
