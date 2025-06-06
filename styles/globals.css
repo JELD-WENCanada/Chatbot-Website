@@ -123,14 +123,14 @@ body {
 .message.user {
   background-color: #1d446b;
   color: #ffffff;
-  align-self: flex-end;
+  align-self: flex-start;
   border-radius: 6px 20px 20px 20px;
 }
 
 .message.bot {
   background-color: #c5b282;
   color: #1d446b;
-  align-self: flex-start;
+  align-self: flex-end;
   border-radius: 20px 6px 20px 20px;
 }
 
