@@ -47,7 +47,6 @@ body {
   z-index: 1001;
 }
 
-/* When open, slide up into view */
 #chatbot-container.show {
   transform: translateY(0);
   opacity: 1;
@@ -75,7 +74,6 @@ body {
   gap: 12px;
 }
 
-/* Logo inside header */
 #chatbot-logo {
   width: 40px;
   height: 40px;
@@ -94,7 +92,6 @@ body {
   border-radius: 50%;
 }
 
-/* Title next to logo */
 #chatbot-title {
   font-size: 16px;
   font-weight: 600;
@@ -112,26 +109,65 @@ body {
   flex-direction: column;
 }
 
+/* Message container with avatar simulation */
 .message {
+  position: relative;
   max-width: 80%;
   padding: 12px 16px;
   border-radius: 20px;
-  margin: 8px 0;
+  margin: 12px 0;
   font-size: 14px;
+  animation: slideIn 0.3s ease;
+  transition: box-shadow 0.3s ease;
 }
 
-.message.user {
-  background-color: #1d446b;
-  color: #ffffff;
-  align-self: flex-start;
-  border-radius: 6px 20px 20px 20px;
+.message:hover {
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
 }
 
+/* Bot message */
 .message.bot {
   background-color: #6f9abb;
   color: #1d446b;
-  align-self: flex-end;
+  align-self: flex-start;
   border-radius: 20px 6px 20px 20px;
+  padding-left: 48px; /* space for avatar */
+}
+
+.message.bot::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-image: url("/images/jw-logo.png");
+  background-size: cover;
+  background-position: center;
+}
+
+/* User message */
+.message.user {
+  background-color: #1d446b;
+  color: #ffffff;
+  align-self: flex-end;
+  border-radius: 6px 20px 20px 20px;
+  padding-right: 48px; /* space for avatar */
+}
+
+.message.user::after {
+  content: "";
+  position: absolute;
+  right: 8px;
+  top: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  background-image: url("/images/user-icon.png");
+  background-size: cover;
+  background-position: center;
 }
 
 /* ------------------- */
@@ -180,6 +216,20 @@ body {
 
 .header-buttons button:hover {
   background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* ------------------- */
+/* Animations          */
+/* ------------------- */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ------------------- */
