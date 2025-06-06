@@ -34,6 +34,18 @@ export default function Chatbot() {
     setInput("");
   };
 
+  function linkify(text) {
+    const urlRegex = /(\bhttps?:\/\/[^\s]+)/g;
+    return text.replace(urlRegex, (url) => {
+      try {
+        const hostname = new URL(url).hostname.replace(/^www\./, "");
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${hostname}</a>`;
+      } catch (e) {
+        return url;
+      }
+    });
+  }
+
   function findMatchingResponse(inputText) {
     if (!intents) return "Thanks for your message! We'll get back to you shortly.";
 
@@ -133,9 +145,13 @@ export default function Chatbot() {
 
         <div className="chat-messages" id="chat-messages">
           {messages.map((msg, i) => (
-            <div key={i} className={`message ${msg.sender}`}>
-              {msg.text}
-            </div>
+            <div
+              key={i}
+              className={`message ${msg.sender}`}
+              dangerouslySetInnerHTML={{
+                __html: msg.sender === "bot" ? linkify(msg.text) : msg.text,
+              }}
+            />
           ))}
           <div ref={messagesEndRef} />
         </div>
