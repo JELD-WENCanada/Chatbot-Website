@@ -1,23 +1,17 @@
+// pages/api/chatbot.js
 export default async function handler(req, res) {
-  const GOOGLE_SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwYE0h0I3aK3xzCNXEv06M1z9WjpYTUXqnWNWPjsk9dwqRO3ooXC00KdzrtNf-jwzQbyw/exec";
-
   try {
-    const response = await fetch(GOOGLE_SHEETS_WEB_APP_URL);
-
+    const response = await fetch("https://script.google.com/macros/s/AKfycbwYE0h0I3aK3xzCNXEv06M1z9WjpYTUXqnWNWPjsk9dwqRO3ooXC00KdzrtNf-jwzQbyw/exec");
+    
     if (!response.ok) {
-      throw new Error(`Google Sheets API returned status ${response.status}`);
+      throw new Error(`Google Apps Script responded with ${response.status}`);
     }
 
     const data = await response.json();
-
-    // Expecting data to have 'intents' key
-    if (!data.intents) {
-      throw new Error("No 'intents' property found in Google Sheets data");
-    }
-
-    res.status(200).json({ intents: data.intents });
+    res.status(200).json(data);
   } catch (error) {
-    console.error("Error fetching chatbot intents:", error);
+    console.error("Failed to fetch chatbot intents:", error);
     res.status(500).json({ error: "Failed to fetch chatbot intents" });
   }
 }
+
