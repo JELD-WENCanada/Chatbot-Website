@@ -7,12 +7,10 @@ export default function Chatbot() {
   const [intents, setIntents] = useState(null);
   const messagesEndRef = useRef(null);
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Fetch intents from backend API once
   useEffect(() => {
     fetch("/api/chatbot")
       .then((res) => {
@@ -35,7 +33,7 @@ export default function Chatbot() {
   };
 
   function linkify(text) {
-    const urlRegex = /(\bhttps?:\/\/[^\s]+)/g;
+    const urlRegex = /\bhttps?:\/\/[^\s]+/g;
     return text.replace(urlRegex, (url) => {
       try {
         const hostname = new URL(url).hostname.replace(/^www\./, "");
@@ -46,63 +44,76 @@ export default function Chatbot() {
     });
   }
 
+  function clean(text) {
+    return text.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+  }
+
+  function similarity(a, b) {
+    const longer = a.length > b.length ? a : b;
+    const shorter = a.length > b.length ? b : a;
+    const longerLength = longer.length;
+    if (longerLength === 0) return 1.0;
+    const editDist = levenshteinDistance(longer, shorter);
+    return (longerLength - editDist) / longerLength;
+  }
+
+  function levenshteinDistance(a, b) {
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+    for (let i = 1; i <= b.length; i++) {
+      for (let j = 1; j <= a.length; j++) {
+        if (b.charAt(i - 1) === a.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j] + 1
+          );
+        }
+      }
+    }
+    return matrix[b.length][a.length];
+  }
+
+  function tokenSimilarity(a, b) {
+    const aTokens = new Set(clean(a).split(" "));
+    const bTokens = new Set(clean(b).split(" "));
+    const common = [...aTokens].filter(word => bTokens.has(word)).length;
+    const total = new Set([...aTokens, ...bTokens]).size;
+    return total === 0 ? 0 : common / total;
+  }
+
   function findMatchingResponse(inputText) {
     if (!intents) return "Thanks for your message! We'll get back to you shortly.";
 
-    inputText = inputText.toLowerCase();
+    const cleanedInput = clean(inputText);
     let bestMatch = null;
-    let highestScore = 0;
-    const threshold = 0.6;
-
-    function similarity(a, b) {
-      const longer = a.length > b.length ? a : b;
-      const shorter = a.length > b.length ? b : a;
-      const longerLength = longer.length;
-      if (longerLength === 0) return 1.0;
-      const editDist = levenshteinDistance(longer, shorter);
-      return (longerLength - editDist) / longerLength;
-    }
-
-    function levenshteinDistance(a, b) {
-      const matrix = [];
-      for (let i = 0; i <= b.length; i++) {
-        matrix[i] = [i];
-      }
-      for (let j = 0; j <= a.length; j++) {
-        matrix[0][j] = j;
-      }
-      for (let i = 1; i <= b.length; i++) {
-        for (let j = 1; j <= a.length; j++) {
-          if (b.charAt(i - 1) === a.charAt(j - 1)) {
-            matrix[i][j] = matrix[i - 1][j - 1];
-          } else {
-            matrix[i][j] = Math.min(
-              matrix[i - 1][j - 1] + 1,
-              matrix[i][j - 1] + 1,
-              matrix[i - 1][j] + 1
-            );
-          }
-        }
-      }
-      return matrix[b.length][a.length];
-    }
+    let bestScore = 0;
+    const threshold = 0.5;
 
     for (const intent of intents) {
+      let intentScore = 0;
       for (const pattern of intent.patterns) {
-        const score = similarity(inputText, pattern.toLowerCase());
-        if (score > highestScore) {
-          highestScore = score;
-          bestMatch = intent;
-        }
+        const cleanedPattern = clean(pattern);
+        const tokenScore = tokenSimilarity(cleanedInput, cleanedPattern);
+        const levScore = similarity(cleanedInput, cleanedPattern);
+        const combinedScore = (tokenScore * 0.6 + levScore * 0.4); // Weighted combo
+        if (combinedScore > intentScore) intentScore = combinedScore;
+      }
+      if (intentScore > bestScore) {
+        bestScore = intentScore;
+        bestMatch = intent;
       }
     }
 
-    if (bestMatch && highestScore >= threshold) {
+    if (bestMatch && bestScore >= threshold) {
       const randomIndex = Math.floor(Math.random() * bestMatch.responses.length);
       return bestMatch.responses[randomIndex];
     }
 
-    return "Thanks for your message! We'll get back to you shortly.";
+    return "I'm not sure I understood that. Can you try rephrasing?";
   }
 
   function sendMessage() {
