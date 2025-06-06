@@ -38,14 +38,58 @@ export default function Chatbot() {
     if (!intents) return "Thanks for your message! We'll get back to you shortly.";
 
     inputText = inputText.toLowerCase();
+    let bestMatch = null;
+    let highestScore = 0;
+    const threshold = 0.6;
+
+    function similarity(a, b) {
+      const longer = a.length > b.length ? a : b;
+      const shorter = a.length > b.length ? b : a;
+      const longerLength = longer.length;
+      if (longerLength === 0) return 1.0;
+      const editDist = levenshteinDistance(longer, shorter);
+      return (longerLength - editDist) / longerLength;
+    }
+
+    function levenshteinDistance(a, b) {
+      const matrix = [];
+      for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+      }
+      for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+      }
+      for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+          if (b.charAt(i - 1) === a.charAt(j - 1)) {
+            matrix[i][j] = matrix[i - 1][j - 1];
+          } else {
+            matrix[i][j] = Math.min(
+              matrix[i - 1][j - 1] + 1,
+              matrix[i][j - 1] + 1,
+              matrix[i - 1][j] + 1
+            );
+          }
+        }
+      }
+      return matrix[b.length][a.length];
+    }
+
     for (const intent of intents) {
       for (const pattern of intent.patterns) {
-        if (inputText.includes(pattern)) {
-          const randomIndex = Math.floor(Math.random() * intent.responses.length);
-          return intent.responses[randomIndex];
+        const score = similarity(inputText, pattern.toLowerCase());
+        if (score > highestScore) {
+          highestScore = score;
+          bestMatch = intent;
         }
       }
     }
+
+    if (bestMatch && highestScore >= threshold) {
+      const randomIndex = Math.floor(Math.random() * bestMatch.responses.length);
+      return bestMatch.responses[randomIndex];
+    }
+
     return "Thanks for your message! We'll get back to you shortly.";
   }
 
@@ -67,16 +111,13 @@ export default function Chatbot() {
 
   return (
     <>
-      {/* Trigger button */}
       {!isOpen && (
         <div id="chatbot-trigger" onClick={toggleChat}>
           <img src="/images/jw-logo.png" alt="JELD-WEN Logo" />
         </div>
       )}
 
-      {/* Chat container */}
       <div id="chatbot-container" className={isOpen ? "show" : ""}>
-        {/* Header */}
         <div id="chatbot-header">
           <div className="header-left">
             <div id="chatbot-logo">
@@ -90,7 +131,6 @@ export default function Chatbot() {
           </div>
         </div>
 
-        {/* Messages */}
         <div className="chat-messages" id="chat-messages">
           {messages.map((msg, i) => (
             <div key={i} className={`message ${msg.sender}`}>
@@ -100,7 +140,6 @@ export default function Chatbot() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input area */}
         <div className="chat-input">
           <input
             type="text"
