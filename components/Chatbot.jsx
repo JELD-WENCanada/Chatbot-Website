@@ -26,11 +26,15 @@ export default function Chatbot() {
   const toggleChat = () => {
     setIsOpen((prev) => {
     const newState = !prev;
-    if (newState && typeof window.gtag === 'function') {
-      window.gtag('event', 'chat_opened', {
-        event_category: 'Chatbot',
-        event_label: 'Chat opened'
-      });
+    try {
+      if (newState && typeof window.gtag === 'function') {
+        window.gtag('event', 'chat_opened', {
+          event_category: 'Chatbot',
+          event_label: 'Chat opened'
+        });
+      }
+    } catch (e) {
+      console.error("GA4 error:", e);
     }
     return newState;
   });
@@ -132,12 +136,16 @@ export default function Chatbot() {
     setMessages((prev) => [...prev, userMessage]);
 
     // GA4 event for user message
-    if (typeof window.gtag === 'function') {
-      window.gtag('event', 'chat_message_sent', {
-        event_category: 'Chatbot',
-        event_label: input,
-        value: input.length
-      });
+    try {
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', 'chat_message_sent', {
+          event_category: 'Chatbot',
+          event_label: input,
+          value: input.length
+        });
+      }
+    } catch (e) {
+      console.error("GA4 error:", e);
     }
 
     const botResponse = findMatchingResponse(input);
