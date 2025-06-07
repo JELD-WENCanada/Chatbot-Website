@@ -5,6 +5,7 @@ export default function Chatbot() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [intents, setIntents] = useState(null);
+  const [lastIntent, setLastIntent] = useState(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -23,13 +24,11 @@ export default function Chatbot() {
       .catch((err) => console.error("Failed to load chatbot data:", err));
   }, []);
 
-  const toggleChat = () => {
-    setIsOpen((prev) => !prev);
-  };
-
+  const toggleChat = () => setIsOpen((prev) => !prev);
   const refreshChat = () => {
     setMessages([]);
     setInput("");
+    setLastIntent(null);
   };
 
   function linkify(text) {
@@ -99,7 +98,7 @@ export default function Chatbot() {
         const cleanedPattern = clean(pattern);
         const tokenScore = tokenSimilarity(cleanedInput, cleanedPattern);
         const levScore = similarity(cleanedInput, cleanedPattern);
-        const combinedScore = (tokenScore * 0.6 + levScore * 0.4); // Weighted combo
+        const combinedScore = (tokenScore * 0.6 + levScore * 0.4);
         if (combinedScore > intentScore) intentScore = combinedScore;
       }
       if (intentScore > bestScore) {
@@ -109,22 +108,28 @@ export default function Chatbot() {
     }
 
     if (bestMatch && bestScore >= threshold) {
-      const randomIndex = Math.floor(Math.random() * bestMatch.responses.length);
-      return bestMatch.responses[randomIndex];
+      setLastIntent(bestMatch.intent);
+      const responses = bestMatch.responses
+        .split("|")
+        .map(r => r.trim())
+        .filter(Boolean);
+      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+      const suggestions = bestMatch.suggestions || [];
+      return { text: randomResponse, suggestions };
     }
 
-    return "I'm not sure I understood that. Can you try rephrasing?";
+    return { text: "I'm not sure I understood that. Can you try rephrasing?", suggestions: [] };
   }
 
-  function sendMessage() {
-    if (!input.trim()) return;
-    const userMessage = { sender: "user", text: input };
+  function sendMessage(text = input) {
+    if (!text.trim()) return;
+    const userMessage = { sender: "user", text };
     setMessages((prev) => [...prev, userMessage]);
 
-    const botResponse = findMatchingResponse(input);
+    const { text: botText, suggestions } = findMatchingResponse(text);
     setInput("");
     setTimeout(() => {
-      setMessages((prev) => [...prev, { sender: "bot", text: botResponse }]);
+      setMessages((prev) => [...prev, { sender: "bot", text: botText, suggestions }]);
     }, 500);
   }
 
@@ -156,13 +161,26 @@ export default function Chatbot() {
 
         <div className="chat-messages" id="chat-messages">
           {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`message ${msg.sender}`}
-              dangerouslySetInnerHTML={{
-                __html: msg.sender === "bot" ? linkify(msg.text) : msg.text,
-              }}
-            />
+            <div key={i} className={`message ${msg.sender}`}>
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: msg.sender === "bot" ? linkify(msg.text) : msg.text,
+                }}
+              />
+              {msg.sender === "bot" && msg.suggestions?.length > 0 && (
+                <div className="suggestions">
+                  {msg.suggestions.map((s, j) => (
+                    <button
+                      key={j}
+                      className="suggestion-btn"
+                      onClick={() => sendMessage(s)}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
           <div ref={messagesEndRef} />
         </div>
@@ -176,7 +194,7 @@ export default function Chatbot() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <button id="send-btn" onClick={sendMessage}>Send</button>
+          <button id="send-btn" onClick={() => sendMessage()}>Send</button>
         </div>
       </div>
     </>
