@@ -85,7 +85,7 @@ export default function Chatbot() {
   }
 
   function findMatchingResponse(inputText) {
-    if (!intents) return "Thanks for your message! We'll get back to you shortly.";
+    if (!intents) return { text: "Thanks for your message! We'll get back to you shortly.", suggestions: [] };
 
     const cleanedInput = clean(inputText);
     let bestMatch = null;
