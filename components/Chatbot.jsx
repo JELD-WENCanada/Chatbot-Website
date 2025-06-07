@@ -24,7 +24,16 @@ export default function Chatbot() {
   }, []);
 
   const toggleChat = () => {
-    setIsOpen((prev) => !prev);
+    setIsOpen((prev) => {
+    const newState = !prev;
+    if (newState && typeof window.gtag === 'function') {
+      window.gtag('event', 'chat_opened', {
+        event_category: 'Chatbot',
+        event_label: 'Chat opened'
+      });
+    }
+    return newState;
+  });
   };
 
   const refreshChat = () => {
@@ -121,6 +130,15 @@ export default function Chatbot() {
     if (!input.trim()) return;
     const userMessage = { sender: "user", text: input };
     setMessages((prev) => [...prev, userMessage]);
+
+    // GA4 event for user message
+    if (typeof window.gtag === 'function') {
+      window.gtag('event', 'chat_message_sent', {
+        event_category: 'Chatbot',
+        event_label: input,
+        value: input.length
+      });
+    }
 
     const botResponse = findMatchingResponse(input);
     setInput("");
