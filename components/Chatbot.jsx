@@ -99,7 +99,7 @@ export default function Chatbot() {
         const cleanedPattern = clean(pattern);
         const tokenScore = tokenSimilarity(cleanedInput, cleanedPattern);
         const levScore = similarity(cleanedInput, cleanedPattern);
-        const combinedScore = (tokenScore * 0.6 + levScore * 0.4); // Weighted combo
+        const combinedScore = (tokenScore * 0.6 + levScore * 0.4);
         if (combinedScore > intentScore) intentScore = combinedScore;
       }
       if (intentScore > bestScore) {
@@ -113,7 +113,8 @@ export default function Chatbot() {
       return bestMatch.responses[randomIndex];
     }
 
-    return "I'm not sure I understood that. Can you try rephrasing?";
+    console.log("Unmatched query:", inputText);
+    return "I'm still learning and couldn't find an exact match. Can you please clarify your question?";
   }
 
   function sendMessage() {
