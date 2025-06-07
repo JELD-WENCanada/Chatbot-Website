@@ -5,6 +5,7 @@ export default function Chatbot() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [intents, setIntents] = useState(null);
+  const [currentContext, setCurrentContext] = useState(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -23,13 +24,11 @@ export default function Chatbot() {
       .catch((err) => console.error("Failed to load chatbot data:", err));
   }, []);
 
-  const toggleChat = () => {
-    setIsOpen((prev) => !prev);
-  };
-
+  const toggleChat = () => setIsOpen((prev) => !prev);
   const refreshChat = () => {
     setMessages([]);
     setInput("");
+    setCurrentContext(null);
   };
 
   function linkify(text) {
@@ -63,15 +62,13 @@ export default function Chatbot() {
     for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
     for (let i = 1; i <= b.length; i++) {
       for (let j = 1; j <= a.length; j++) {
-        if (b.charAt(i - 1) === a.charAt(j - 1)) {
-          matrix[i][j] = matrix[i - 1][j - 1];
-        } else {
-          matrix[i][j] = Math.min(
-            matrix[i - 1][j - 1] + 1,
-            matrix[i][j - 1] + 1,
-            matrix[i - 1][j] + 1
-          );
-        }
+        matrix[i][j] = b.charAt(i - 1) === a.charAt(j - 1)
+          ? matrix[i - 1][j - 1]
+          : Math.min(
+              matrix[i - 1][j - 1] + 1,
+              matrix[i][j - 1] + 1,
+              matrix[i - 1][j] + 1
+            );
       }
     }
     return matrix[b.length][a.length];
@@ -99,21 +96,28 @@ export default function Chatbot() {
         const cleanedPattern = clean(pattern);
         const tokenScore = tokenSimilarity(cleanedInput, cleanedPattern);
         const levScore = similarity(cleanedInput, cleanedPattern);
-        const combinedScore = (tokenScore * 0.6 + levScore * 0.4); // Weighted combo
+        const combinedScore = (tokenScore * 0.6 + levScore * 0.4);
         if (combinedScore > intentScore) intentScore = combinedScore;
       }
-      if (intentScore > bestScore) {
+
+      const matchesContext = !intent.context || intent.context === currentContext;
+
+      if (intentScore > bestScore && matchesContext) {
         bestScore = intentScore;
         bestMatch = intent;
       }
     }
 
     if (bestMatch && bestScore >= threshold) {
-      const randomIndex = Math.floor(Math.random() * bestMatch.responses.length);
-      return bestMatch.responses[randomIndex];
+      setCurrentContext(bestMatch.follow_up || null);
+      const response = bestMatch.responses[Math.floor(Math.random() * bestMatch.responses.length)];
+      return response;
     }
 
-    return "I'm not sure I understood that. Can you try rephrasing?";
+    // Log unmatched query
+    console.warn("Unmatched input:", inputText, " | Context:", currentContext);
+
+    return "I'm still learning and couldn’t quite help with that yet. Please try rephrasing or ask another question.";
   }
 
   function sendMessage() {
