@@ -19,7 +19,7 @@ export default async function handler(req, res) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "mistral/mistral-7b-instruct", // or use "openai/gpt-3.5-turbo"
+        model: "openai/gpt-3.5-turbo", // or use "openai/gpt-3.5-turbo"
         messages: [
           {
             role: "system",
