@@ -5,6 +5,8 @@ export default async function handler(req, res) {
 
   const { userInput } = req.body;
 
+  console.log("📥 Fallback request received with input:", userInput);
+
   if (!userInput) {
     return res.status(400).json({ error: 'Missing userInput in request body' });
   }
@@ -17,7 +19,7 @@ export default async function handler(req, res) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "mistral/mistral-7b-instruct", // You can change to another model later
+        model: "mistral/mistral-7b-instruct", // or use "openai/gpt-3.5-turbo"
         messages: [
           {
             role: "system",
@@ -31,15 +33,20 @@ export default async function handler(req, res) {
 
     const data = await openrouterRes.json();
 
+    console.log("🧠 OpenRouter raw response:", JSON.stringify(data, null, 2));
+
     const message = data?.choices?.[0]?.message?.content;
 
     if (!message) {
-      return res.status(500).json({ error: 'No response from OpenRouter.' });
+      return res.status(500).json({
+        error: 'No response message returned from OpenRouter.',
+        raw: data
+      });
     }
 
     return res.status(200).json({ message });
   } catch (error) {
-    console.error('OpenRouter API error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error("❌ OpenRouter API error:", error);
+    return res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 }
