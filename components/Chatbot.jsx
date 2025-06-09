@@ -25,19 +25,19 @@ export default function Chatbot() {
 
   const toggleChat = () => {
     setIsOpen((prev) => {
-    const newState = !prev;
-    try {
-      if (newState && typeof window.gtag === 'function') {
-        window.gtag('event', 'chat_opened', {
-          event_category: 'Chatbot',
-          event_label: 'Chat opened'
-        });
+      const newState = !prev;
+      try {
+        if (newState && typeof window.gtag === 'function') {
+          window.gtag('event', 'chat_opened', {
+            event_category: 'Chatbot',
+            event_label: 'Chat opened'
+          });
+        }
+      } catch (e) {
+        console.error("GA4 error:", e);
       }
-    } catch (e) {
-      console.error("GA4 error:", e);
-    }
-    return newState;
-  });
+      return newState;
+    });
   };
 
   const refreshChat = () => {
@@ -130,12 +130,40 @@ export default function Chatbot() {
     return "I'm still learning and couldn't find an exact match. Can you please clarify your question?";
   }
 
-  function sendMessage() {
+  async function getFallbackResponse(userInput) {
+    try {
+      const res = await fetch("/api/fallback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ userInput })
+      });
+
+      const data = await res.json();
+      return data.message || "Sorry, I couldn't find an answer for that.";
+    } catch (error) {
+      console.error("Fallback error:", error);
+      return "Oops, something went wrong. Please try again.";
+    }
+  }
+
+  function updateLastBotMessage(newText) {
+    setMessages((prev) => {
+      const updated = [...prev];
+      const lastIndex = updated.length - 1;
+      if (updated[lastIndex]?.sender === "bot") {
+        updated[lastIndex].text = newText;
+      }
+      return updated;
+    });
+  }
+
+  async function sendMessage() {
     if (!input.trim()) return;
     const userMessage = { sender: "user", text: input };
     setMessages((prev) => [...prev, userMessage]);
 
-    // GA4 event for user message
     try {
       if (typeof window.gtag === 'function') {
         window.gtag('event', 'chat_message_sent', {
@@ -150,9 +178,17 @@ export default function Chatbot() {
 
     const botResponse = findMatchingResponse(input);
     setInput("");
-    setTimeout(() => {
-      setMessages((prev) => [...prev, { sender: "bot", text: botResponse }]);
-    }, 500);
+
+    setMessages((prev) => [...prev, { sender: "bot", text: "Let me check that for you..." }]);
+
+    if (
+      botResponse === "I'm still learning and couldn't find an exact match. Can you please clarify your question?"
+    ) {
+      const fallbackResponse = await getFallbackResponse(input);
+      updateLastBotMessage(fallbackResponse);
+    } else {
+      updateLastBotMessage(botResponse);
+    }
   }
 
   const handleKeyDown = (e) => {
