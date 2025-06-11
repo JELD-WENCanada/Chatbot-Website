@@ -1,4 +1,4 @@
-import limiter from '../../lib/rateLimiter';
+import ratelimit from "../../lib/rateLimiter"; // adjust path if different
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
