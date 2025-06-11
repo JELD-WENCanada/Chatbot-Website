@@ -1,6 +1,17 @@
+import limiter from '../../lib/rateLimiter';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+
+  try {
+    // Rate limit: max 50 requests per minute per IP
+    await limiter.check(res, 50, ip);
+  } catch (err) {
+    return res.status(429).json({ error: 'Too many requests. Please try again later.' });
   }
 
   const { userInput } = req.body;
@@ -19,7 +30,7 @@ export default async function handler(req, res) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "openai/gpt-3.5-turbo", // or use "openai/gpt-3.5-turbo"
+        model: "openai/gpt-3.5-turbo",
         messages: [
           {
             role: "system",
@@ -45,6 +56,7 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({ message });
+
   } catch (error) {
     console.error("❌ OpenRouter API error:", error);
     return res.status(500).json({ error: 'Internal server error', details: error.message });
