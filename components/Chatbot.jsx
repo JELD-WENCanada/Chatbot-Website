@@ -27,10 +27,10 @@ export default function Chatbot() {
     setIsOpen((prev) => {
       const newState = !prev;
       try {
-        if (newState && typeof window.gtag === 'function') {
-          window.gtag('event', 'chat_opened', {
-            event_category: 'Chatbot',
-            event_label: 'Chat opened'
+        if (newState && typeof window.gtag === "function") {
+          window.gtag("event", "chat_opened", {
+            event_category: "Chatbot",
+            event_label: "Chat opened",
           });
         }
       } catch (e) {
@@ -93,13 +93,14 @@ export default function Chatbot() {
   function tokenSimilarity(a, b) {
     const aTokens = new Set(clean(a).split(" "));
     const bTokens = new Set(clean(b).split(" "));
-    const common = [...aTokens].filter(word => bTokens.has(word)).length;
+    const common = [...aTokens].filter((word) => bTokens.has(word)).length;
     const total = new Set([...aTokens, ...bTokens]).size;
     return total === 0 ? 0 : common / total;
   }
 
   function findMatchingResponse(inputText) {
-    if (!intents) return "Thanks for your message! We'll get back to you shortly.";
+    if (!intents)
+      return "Thanks for your message! We'll get back to you shortly.";
     const cleanedInput = clean(inputText);
     let bestMatch = null;
     let bestScore = 0;
@@ -110,7 +111,7 @@ export default function Chatbot() {
         const cleanedPattern = clean(pattern);
         const tokenScore = tokenSimilarity(cleanedInput, cleanedPattern);
         const levScore = similarity(cleanedInput, cleanedPattern);
-        const combinedScore = (tokenScore * 0.6 + levScore * 0.4);
+        const combinedScore = tokenScore * 0.6 + levScore * 0.4;
         if (combinedScore > intentScore) intentScore = combinedScore;
       }
       if (intentScore > bestScore) {
@@ -131,9 +132,9 @@ export default function Chatbot() {
       const res = await fetch("/api/fallback", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ userInput })
+        body: JSON.stringify({ userInput }),
       });
       const data = await res.json();
       return data.message || "Sorry, I couldn't find an answer for that.";
@@ -160,11 +161,11 @@ export default function Chatbot() {
     setMessages((prev) => [...prev, userMessage]);
 
     try {
-      if (typeof window.gtag === 'function') {
-        window.gtag('event', 'chat_message_sent', {
-          event_category: 'Chatbot',
+      if (typeof window.gtag === "function") {
+        window.gtag("event", "chat_message_sent", {
+          event_category: "Chatbot",
           event_label: input,
-          value: input.length
+          value: input.length,
         });
       }
     } catch (e) {
@@ -178,13 +179,14 @@ export default function Chatbot() {
     let finalBotResponse = botResponse;
 
     if (
-      botResponse === "I'm still learning and couldn't find an exact match. Can you please clarify your question?"
+      botResponse ===
+      "I'm still learning and couldn't find an exact match. Can you please clarify your question?"
     ) {
       const fallbackResponse = await getFallbackResponse(input);
       updateLastBotMessage(fallbackResponse);
       finalBotResponse = fallbackResponse;
 
-      // Log only fallback queries to Google Sheet
+      // Log only fallback queries via your API route (to avoid CORS issues)
       const payload = {
         timestamp: new Date().toISOString(),
         userInput: input,
@@ -198,7 +200,7 @@ export default function Chatbot() {
         sessionStorage.setItem("chatbotSessionId", payload.sessionId);
       }
       try {
-        await fetch("https://script.google.com/macros/s/AKfycbx57TdjldhTs5vVghE7uQEpr-chXyMX5VOov4RCnMa_etkJXiR6nHJr56Sn4Y8tMAcvSQ/exec", {
+        await fetch("/api/logFallback", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -208,7 +210,6 @@ export default function Chatbot() {
       } catch (err) {
         console.error("Failed to log fallback to Google Sheet:", err);
       }
-
     } else {
       updateLastBotMessage(botResponse);
       // No logging here for matched intents
@@ -235,8 +236,12 @@ export default function Chatbot() {
             <div id="chatbot-title">JELD-WEN Chatbot</div>
           </div>
           <div className="header-buttons">
-            <button id="minimize-btn" onClick={toggleChat}>−</button>
-            <button id="refresh-btn" onClick={refreshChat}>⟳</button>
+            <button id="minimize-btn" onClick={toggleChat}>
+              −
+            </button>
+            <button id="refresh-btn" onClick={refreshChat}>
+              ⟳
+            </button>
           </div>
         </div>
         <div className="chat-messages" id="chat-messages">
@@ -260,9 +265,12 @@ export default function Chatbot() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <button id="send-btn" onClick={sendMessage}>Send</button>
+          <button id="send-btn" onClick={sendMessage}>
+            Send
+          </button>
         </div>
       </div>
     </>
   );
 }
+
