@@ -1,4 +1,4 @@
-import ratelimit from "../../lib/rateLimiter"; // adjust path if different
+import ratelimit from "../../lib/rateLimiter";
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -7,10 +7,8 @@ export default async function handler(req, res) {
 
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
 
-  try {
-    // Rate limit: max 50 requests per minute per IP
-    await limiter.check(res, 50, ip);
-  } catch (err) {
+  const { success } = await ratelimit.limit(ip);
+  if (!success) {
     return res.status(429).json({ error: 'Too many requests. Please try again later.' });
   }
 
