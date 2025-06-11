@@ -13,33 +13,29 @@ export default function Chatbot() {
 
   useEffect(() => {
     fetch("/api/chatbot")
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        setIntents(data.intents);
-      })
+      .then((res) => res.json())
+      .then((data) => setIntents(data.intents))
       .catch((err) => console.error("Failed to load chatbot data:", err));
   }, []);
 
-  const toggleChat = () => {
-    setIsOpen((prev) => {
-      const newState = !prev;
-      try {
-        if (newState && typeof window.gtag === 'function') {
-          window.gtag('event', 'chat_opened', {
-            event_category: 'Chatbot',
-            event_label: 'Chat opened'
-          });
-        }
-      } catch (e) {
-        console.error("GA4 error:", e);
-      }
-      return newState;
-    });
+  useEffect(() => {
+    if (!sessionStorage.getItem("chatSessionId")) {
+      sessionStorage.setItem("chatSessionId", generateSessionId());
+    }
+  }, []);
+
+  const generateSessionId = () => {
+    return Math.random().toString(36).substring(2, 15);
   };
 
+  const getMetadata = () => ({
+    timestamp: new Date().toISOString(),
+    sessionId: sessionStorage.getItem("chatSessionId"),
+    browserInfo: navigator.userAgent,
+    pageUrl: window.location.href
+  });
+
+  const toggleChat = () => setIsOpen(prev => !prev);
   const refreshChat = () => {
     setMessages([]);
     setInput("");
@@ -51,7 +47,7 @@ export default function Chatbot() {
       try {
         const hostname = new URL(url).hostname.replace(/^www\./, "");
         return `<a href="${url}" target="_blank" rel="noopener noreferrer">${hostname}</a>`;
-      } catch (e) {
+      } catch {
         return url;
       }
     });
@@ -126,7 +122,6 @@ export default function Chatbot() {
       return bestMatch.responses[randomIndex];
     }
 
-    console.log("Unmatched query:", inputText);
     return "I'm still learning and couldn't find an exact match. Can you please clarify your question?";
   }
 
@@ -134,17 +129,38 @@ export default function Chatbot() {
     try {
       const res = await fetch("/api/fallback", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userInput })
       });
-
       const data = await res.json();
-      return data.message || "Sorry, I couldn't find an answer for that.";
+      return {
+        message: data.message || "Sorry, I couldn't find an answer for that.",
+        source: "chatgpt"
+      };
     } catch (error) {
       console.error("Fallback error:", error);
-      return "Oops, something went wrong. Please try again.";
+      return {
+        message: "Oops, something went wrong. Please try again.",
+        source: "error"
+      };
+    }
+  }
+
+  async function logToGoogleSheet({ userInput, response, source }) {
+    const metadata = getMetadata();
+    try {
+      await fetch("https://script.google.com/macros/s/AKfycbx57TdjldhTs5vVghE7uQEpr-chXyMX5VOov4RCnMa_etkJXiR6nHJr56Sn4Y8tMAcvSQ/exec", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userInput,
+          response,
+          source,
+          ...metadata
+        })
+      });
+    } catch (error) {
+      console.error("Failed to log to Google Sheet:", error);
     }
   }
 
@@ -164,28 +180,19 @@ export default function Chatbot() {
     const userMessage = { sender: "user", text: input };
     setMessages((prev) => [...prev, userMessage]);
 
-    try {
-      if (typeof window.gtag === 'function') {
-        window.gtag('event', 'chat_message_sent', {
-          event_category: 'Chatbot',
-          event_label: input,
-          value: input.length
-        });
-      }
-    } catch (e) {
-      console.error("GA4 error:", e);
-    }
-
     const botResponse = findMatchingResponse(input);
     setInput("");
-
     setMessages((prev) => [...prev, { sender: "bot", text: "Let me check that for you..." }]);
 
     if (
       botResponse === "I'm still learning and couldn't find an exact match. Can you please clarify your question?"
     ) {
-      const fallbackResponse = await getFallbackResponse(input);
-      updateLastBotMessage(fallbackResponse);
+      await logToGoogleSheet({ userInput: input, response: "", source: "unmatched" });
+      const fallback = await getFallbackResponse(input);
+      updateLastBotMessage(fallback.message);
+      if (fallback.source === "chatgpt") {
+        await logToGoogleSheet({ userInput: input, response: fallback.message, source: "chatgpt" });
+      }
     } else {
       updateLastBotMessage(botResponse);
     }
@@ -221,7 +228,7 @@ export default function Chatbot() {
           {messages.map((msg, i) => (
             <div
               key={i}
-              className={`message ${msg.sender}`}
+              className={\`message \${msg.sender}\`}
               dangerouslySetInnerHTML={{
                 __html: msg.sender === "bot" ? linkify(msg.text) : msg.text,
               }}
