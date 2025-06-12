@@ -275,6 +275,7 @@ html, body {
   border: 1px solid #ccc;
   margin-top: 6px;
   display: block;
+  background-color: white;
 }
 
 /* ------------------- */
