@@ -1,3 +1,18 @@
+function linkify(text) {
+  // If the text already contains HTML tags, return it as-is
+  if (/<[a-z][\s\S]*>/i.test(text)) return text;
+
+  const urlRegex = /\bhttps?:\/\/[^\s]+/g;
+  return text.replace(urlRegex, (url) => {
+    try {
+      const hostname = new URL(url).hostname.replace(/^www\./, "");
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${hostname}</a>`;
+    } catch (e) {
+      return url;
+    }
+  });
+}
+
 import { useState, useEffect, useRef } from "react";
 
 export default function Chatbot() {
@@ -273,4 +288,3 @@ export default function Chatbot() {
     </>
   );
 }
-
