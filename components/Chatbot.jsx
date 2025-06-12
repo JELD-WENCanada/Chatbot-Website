@@ -1,18 +1,3 @@
-function linkify(text) {
-  // If the text already contains HTML tags, return it as-is
-  if (/<[a-z][\s\S]*>/i.test(text)) return text;
-
-  const urlRegex = /\bhttps?:\/\/[^\s]+/g;
-  return text.replace(urlRegex, (url) => {
-    try {
-      const hostname = new URL(url).hostname.replace(/^www\./, "");
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${hostname}</a>`;
-    } catch (e) {
-      return url;
-    }
-  });
-}
-
 import { useState, useEffect, useRef } from "react";
 
 export default function Chatbot() {
@@ -61,6 +46,7 @@ export default function Chatbot() {
   };
 
   function linkify(text) {
+    if (/<[a-z][\s\S]*>/i.test(text)) return text;
     const urlRegex = /\bhttps?:\/\/[^\s]+/g;
     return text.replace(urlRegex, (url) => {
       try {
@@ -136,7 +122,7 @@ export default function Chatbot() {
     }
     if (bestMatch && bestScore >= threshold) {
       const randomIndex = Math.floor(Math.random() * bestMatch.responses.length);
-      return bestMatch.responses[randomIndex];
+      return bestMatch.responses[randomIndex]; // may be { text, image } object
     }
     console.log("Unmatched query:", inputText);
     return "I'm still learning and couldn't find an exact match. Can you please clarify your question?";
@@ -146,9 +132,7 @@ export default function Chatbot() {
     try {
       const res = await fetch("/api/fallback", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userInput }),
       });
       const data = await res.json();
@@ -159,12 +143,15 @@ export default function Chatbot() {
     }
   }
 
-  function updateLastBotMessage(newText) {
+  function updateLastBotMessage(newText, imageUrl = null) {
     setMessages((prev) => {
       const updated = [...prev];
       const lastIndex = updated.length - 1;
       if (updated[lastIndex]?.sender === "bot") {
         updated[lastIndex].text = newText;
+        if (imageUrl) {
+          updated[lastIndex].image = imageUrl;
+        }
       }
       return updated;
     });
@@ -201,7 +188,6 @@ export default function Chatbot() {
       updateLastBotMessage(fallbackResponse);
       finalBotResponse = fallbackResponse;
 
-      // Log only fallback queries via your API route (to avoid CORS issues)
       const payload = {
         timestamp: new Date().toISOString(),
         userInput: input,
@@ -217,17 +203,18 @@ export default function Chatbot() {
       try {
         await fetch("/api/logFallback", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
       } catch (err) {
         console.error("Failed to log fallback to Google Sheet:", err);
       }
     } else {
-      updateLastBotMessage(botResponse);
-      // No logging here for matched intents
+      if (typeof botResponse === "object" && botResponse.text) {
+        updateLastBotMessage(botResponse.text, botResponse.image);
+      } else {
+        updateLastBotMessage(botResponse);
+      }
     }
   }
 
@@ -251,23 +238,24 @@ export default function Chatbot() {
             <div id="chatbot-title">JELD-WEN Chatbot</div>
           </div>
           <div className="header-buttons">
-            <button id="minimize-btn" onClick={toggleChat}>
-              −
-            </button>
-            <button id="refresh-btn" onClick={refreshChat}>
-              ⟳
-            </button>
+            <button id="minimize-btn" onClick={toggleChat}>−</button>
+            <button id="refresh-btn" onClick={refreshChat}>⟳</button>
           </div>
         </div>
         <div className="chat-messages" id="chat-messages">
           {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`message ${msg.sender}`}
-              dangerouslySetInnerHTML={{
-                __html: msg.sender === "bot" ? linkify(msg.text) : msg.text,
-              }}
-            />
+            <div key={i} className={`message ${msg.sender}`}>
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: msg.sender === "bot" ? linkify(msg.text) : msg.text,
+                }}
+              />
+              {msg.image && (
+                <div className="chatbot-image-wrapper">
+                  <img src={msg.image} alt="Product" className="chatbot-image" />
+                </div>
+              )}
+            </div>
           ))}
           <div ref={messagesEndRef} />
         </div>
@@ -280,9 +268,7 @@ export default function Chatbot() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <button id="send-btn" onClick={sendMessage}>
-            Send
-          </button>
+          <button id="send-btn" onClick={sendMessage}>Send</button>
         </div>
       </div>
     </>
