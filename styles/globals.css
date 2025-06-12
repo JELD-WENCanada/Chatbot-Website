@@ -262,6 +262,22 @@ html, body {
 }
 
 /* ------------------- */
+/* Chatbot Image Style */
+/* ------------------- */
+.chatbot-image-wrapper {
+  margin-top: 8px;
+  text-align: left;
+}
+
+.chatbot-image {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  margin-top: 6px;
+  display: block;
+}
+
+/* ------------------- */
 /* Animations          */
 /* ------------------- */
 @keyframes fadeIn {
