@@ -261,21 +261,24 @@ html, body {
   }
 }
 
-/* ------------------- */
-/* Chatbot Image Style */
-/* ------------------- */
 .chatbot-image-wrapper {
-  margin-top: 8px;
-  text-align: left;
+ width: 350px;
+ height: 350px;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ margin-top: 8px;
+ border-radius: 8px;
+ border: 1px solid #ccc;
+ background-color: white;
+ overflow: hidden;
 }
 
 .chatbot-image {
-  max-width: 100%;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  margin-top: 6px;
-  display: block;
-  background-color: white;
+ max-width: 100%;
+ max-height: 100%;
+ object-fit: contain;
+ border-radius: 4px;
 }
 
 /* ------------------- */
